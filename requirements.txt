@@ -1,0 +1,8 @@
+matplotlib==3.7.0
+networkx==2.8.4
+numpy==1.23.5
+python_louvain==0.16
+scikit_learn==1.2.0
+scipy==1.10.0
+torch==1.13.1
+torchvision==0.14.1
