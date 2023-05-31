@@ -37,7 +37,7 @@ python main.py --dataset cifar10 --labeled_num 5 --labeled_ratio 0.1  --save_log
 ```
 
 
-- If the number of novel class is **unknown**, ['propagation', 'connected', 'louvain'] can be used for prototype grouping, where ['louvain'] performs best in our experiments. 
+- If the number of novel class is **unknown**, ['propagation', 'connected', 'louvain'] can be used for prototype grouping and class number estimation, where ['louvain'] performs best in our experiments. 
 - To train on CIFAR-10 without pre-defined number of classes, run
 ```bash
 python main.py --dataset cifar10 --labeled_num 5 --labeled_ratio 0.1 --group_method louvain  --unknown_n_cls --save_log
