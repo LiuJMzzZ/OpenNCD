@@ -137,7 +137,8 @@ def val(args, model, device, train_label_loader, train_unlabel_loader, epoch, n_
                 if acc > acc_best:
                     acc_best = acc
                     eps_best = eps_t
-            print('** Best Group_num {} **'.format(model.group_mask.shape[0]))
+                    n_cls_best = group_mask.shape[0]
+            print('** Best Group_num {} **'.format(n_cls_best))
 
         acc,  preds_proto, proto_mask, group_mask, group_mask_new = group_discovery(edge_graph, prototypes, args, targets_l, eps_best, n_cls_best)
         return edge_graph, proto_mask, group_mask_new, proto_ind, acc
@@ -224,7 +225,7 @@ def main():
     print(args)
 
 
-    root = './data'
+    root = '../data'
     if args.dataset == 'cifar10':
         train_label_set = datasets.OPENWORLDCIFAR10(root=root, labeled=True, labeled_num=args.labeled_num, labeled_ratio=args.labeled_ratio, download=True, transform=TransformTwice(datasets.dict_transform['cifar10_train']))
         train_unlabel_set = datasets.OPENWORLDCIFAR10(root=root, labeled=False, labeled_num=args.labeled_num, labeled_ratio=args.labeled_ratio, download=True, transform=TransformTwice(datasets.dict_transform['cifar10_train']), unlabeled_idxs=train_label_set.unlabeled_idxs)
@@ -254,14 +255,17 @@ def main():
         fix_epoch = 20
 
 
-    NAME = '{}_lratio0{:d}{}'.format(args.dataset, int(args.labeled_ratio*10), 
-                                           "_"+args.group_method if args.unknown_n_cls else '')
-    args.savedir = args.exp_root + NAME
-    if not os.path.exists(args.savedir):
-        os.makedirs(args.savedir)
     if args.save_log:
+        NAME = '{}_lratio0{:d}{}'.format(args.dataset, int(args.labeled_ratio*10), 
+                                           "_"+args.group_method if args.unknown_n_cls else '')
+        args.savedir = args.exp_root + NAME
+        if not os.path.exists(args.savedir):
+            os.makedirs(args.savedir)
         sys.stdout = Logger(args.savedir + '/{}.log'.format(NAME), sys.stdout)
+    else:
+        args.savedir = args.exp_root
 
+    
 
     labeled_len = len(train_label_set)
     unlabeled_len = len(train_unlabel_set)
@@ -306,20 +310,23 @@ def main():
             print('*****Epoch {} Grouping stage*****'.format(epoch))
             args.reg[1] = 0.1 if args.unknown_n_cls else 1
             proto_graph, proto_mask, group_mask, proto_ind, acc = val(args, model, device, train_label_loader, train_unlabel_loader, epoch, n_classes, model.proto_mask)
-            if acc > acc_t and epoch % 2 == 1: # fix 
+            if acc > acc_t: # fix 
                 model.proto_graph = proto_graph.to(device)
                 model.proto_mask = torch.tensor(proto_mask).to(device)
                 model.group_mask = torch.tensor(group_mask).to(device)
                 model.proto_ind = proto_ind
-                acc_t = acc if not epoch == fix_epoch else 0       
+                acc_t = acc if not epoch == fix_epoch else 0
+                print('Current GroupNum:{}'.format(model.group_mask.shape[0]))       
         else:
             print('*****Epoch {} Fixing stage*****'.format(epoch)) 
             args.reg[1] = 1
             pass
 
-
+        
         train(args, model, device, train_label_loader, train_unlabel_loader, optimizer, epoch)
         test(args, model, args.labeled_num, device, test_loader, epoch)
+        
+
         scheduler.step()
 
     print('Current Time: ', args.time_stamp)
