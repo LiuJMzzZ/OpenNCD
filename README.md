@@ -1,5 +1,5 @@
 # Open-world Semi-supervised Novel Class Discovery
-[IJCAI 2023] Official code for [Open-world Semi-supervised Novel Class Discovery](https://arxiv.org/abs/2305.13095)
+[IJCAI 2023] Official code for [Open-world Semi-supervised Novel Class Discovery](https://arxiv.org/abs/2305.13095) (OpenNCD)
 
 ## Introduction
 
