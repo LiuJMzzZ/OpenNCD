@@ -118,31 +118,35 @@ def val(args, model, device, train_label_loader, train_unlabel_loader, epoch, n_
             return acc,  preds_proto, proto_mask, group_mask, group_mask_new
         
         acc_best = 0
-        eps_best = args.eps
         n_cls_best = n_cls
-
+        proto_mask_best, group_mask_new_best = None, None
 
         if args.unknown_n_cls:
             if args.group_method in ['propagation', 'connected'] and args.dataset=='cifar10':
-                interval = (0.5, 0.99, 0.02)
+                eps_min = 0.5
+                eps_max = 0.99
             elif args.group_method in ['louvain'] and args.dataset=='cifar10':
-                interval = (2, 5, 0.2)
+                eps_min = 2 # 0.5
+                eps_max = 10
             elif args.group_method in ['louvain'] and args.dataset=='cifar100':
-                interval = (6, 12, 0.2)
+                eps_min = 6
+                eps_max = 12
             else:
-                raise Exception("Invalid clustering method. ['propagation', 'connected', 'louvain'] for cifar10, ['louvain'] for cifar100.")
-            for eps_t in np.arange(*interval):
-                acc, _, _, group_mask, _ = group_discovery(edge_graph, prototypes, args, targets_l, eps_t)
-                print('EPS:{:.2f}, NUM:{:d}, ACC:{:.4f}'.format(eps_t, group_mask.shape[0], acc))
+                raise Exception("Invalid clustering method. ['propagation', 'connected', 'louvain'] for cifar10, ['louvain'] for cifar100.")          
+            grouping_epochs = args.fix_epoch - args.warm_epoch
+            eps_array = [((eps_min/eps_max)**((i) / (grouping_epochs-1)))*eps_max for i in range(grouping_epochs)]
+            
+            for eps_t in eps_array[:(epoch-args.warm_epoch+1)]:
+                acc, _, proto_mask, _, group_mask_new = group_discovery(edge_graph, prototypes, args, targets_l, eps_t)
+                print('EPS:{:.2f}, NUM:{:d}, ACC:{:.4f}'.format(eps_t, group_mask_new.shape[0], acc))
                 if acc > acc_best:
                     acc_best = acc
-                    eps_best = eps_t
-                    n_cls_best = group_mask.shape[0]
+                    n_cls_best = group_mask_new.shape[0]
+                    proto_mask_best = proto_mask
+                    group_mask_new_best = group_mask_new
             print('** Best Group_num {} **'.format(n_cls_best))
 
-        acc,  preds_proto, proto_mask, group_mask, group_mask_new = group_discovery(edge_graph, prototypes, args, targets_l, eps_best, n_cls_best)
-        return edge_graph, proto_mask, group_mask_new, proto_ind, acc
-
+        return edge_graph, proto_mask_best, group_mask_new_best, proto_ind, acc_best
 
 def test(args, model, labeled_num, device, test_loader, epoch):
     model.eval()
@@ -206,7 +210,7 @@ def main():
     parser.add_argument('--n_proto', default=50, type=int, help='number of prototypes')
     parser.add_argument('--eps', default=0.7, type=float, help='grouping threshold')
     parser.add_argument('--warm_epoch', default=5, type=float, help='warm up epoch')
-    parser.add_argument('--fix_epoch', default=20, type=float, help='grouping epoch')
+    parser.add_argument('--fix_epoch', default=70, type=float, help='grouping epoch')
     parser.add_argument('--group_method', default='spectral', help='[louvain/connected/propagation] if unknown_n_cls')
     parser.add_argument('--unknown_n_cls', action='store_true', help='action if n_classes is unknown')
     parser.add_argument('--save_log', action='store_true', help='action to save output')
@@ -231,8 +235,6 @@ def main():
         train_unlabel_set = datasets.OPENWORLDCIFAR10(root=root, labeled=False, labeled_num=args.labeled_num, labeled_ratio=args.labeled_ratio, download=True, transform=TransformTwice(datasets.dict_transform['cifar10_train']), unlabeled_idxs=train_label_set.unlabeled_idxs)
         test_set = datasets.OPENWORLDCIFAR10(root=root, labeled=False, labeled_num=args.labeled_num, labeled_ratio=args.labeled_ratio, download=True, transform=datasets.dict_transform['cifar10_test'], unlabeled_idxs=train_label_set.unlabeled_idxs)
         n_classes = 10
-        fix_epoch = 70
-        warm_up_epoch = args.warm_epoch
 
     elif args.dataset == 'cifar100':
         args.labeled_num = 50
@@ -243,8 +245,6 @@ def main():
         n_classes = 100
         args.lamda_graph = 0.9
         args.nn = 10
-        fix_epoch = 70
-        warm_up_epoch = args.warm_epoch
 
     else:
         warnings.warn('Dataset is not listed')
@@ -300,23 +300,21 @@ def main():
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=args.milestones, gamma=0.1)
 
     start_epoch = 0
-    acc_t = 0
+
 
     for epoch in range(start_epoch, args.epochs):
-        if epoch < warm_up_epoch: # warm up
+        if epoch < args.warm_epoch: # warm up
             print('*****Epoch {} Warming stage*****'.format(epoch))
             args.reg[1] = 0
-        elif epoch < fix_epoch:
+        elif epoch < args.fix_epoch:
             print('*****Epoch {} Grouping stage*****'.format(epoch))
-            args.reg[1] = 0.1 if args.unknown_n_cls else 1
+            args.reg[1] = 0.0 if args.unknown_n_cls else 1
             proto_graph, proto_mask, group_mask, proto_ind, acc = val(args, model, device, train_label_loader, train_unlabel_loader, epoch, n_classes, model.proto_mask)
-            if acc > acc_t: # fix 
-                model.proto_graph = proto_graph.to(device)
-                model.proto_mask = torch.tensor(proto_mask).to(device)
-                model.group_mask = torch.tensor(group_mask).to(device)
-                model.proto_ind = proto_ind
-                acc_t = acc if not epoch == fix_epoch else 0
-                print('Current GroupNum:{}'.format(model.group_mask.shape[0]))       
+            model.proto_graph = proto_graph.to(device)
+            model.proto_mask = torch.tensor(proto_mask).to(device)
+            model.group_mask = torch.tensor(group_mask).to(device)
+            model.proto_ind = proto_ind
+            print('Current GroupNum:{}'.format(model.group_mask.shape[0]))  
         else:
             print('*****Epoch {} Fixing stage*****'.format(epoch)) 
             args.reg[1] = 1
