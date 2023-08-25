@@ -94,7 +94,7 @@ def val(args, model, device, train_label_loader, train_unlabel_loader, epoch, n_
 
         targets_l = targets_l.cpu().numpy()
 
-        def group_discovery(edge_graph, prototypes, args, targets_l, eps, n_cls=n_cls):
+        def group_discovery(edge_graph, prototypes, args, targets_l, eps=0, n_cls=10):
             proto_label, proto_mask = graph_cluster(edge_graph, prototypes, lamda=args.lamda_graph, method=args.group_method, seed=seed, n_cls=n_cls, eps=eps)
             group_label, group_index = np.unique(proto_label, return_index=True)
             group_mask = proto_mask[group_index]
@@ -127,7 +127,7 @@ def val(args, model, device, train_label_loader, train_unlabel_loader, epoch, n_
                 eps_max = 0.99
             elif args.group_method in ['louvain'] and args.dataset=='cifar10':
                 eps_min = 2 # 0.5
-                eps_max = 10
+                eps_max = 12
             elif args.group_method in ['louvain'] and args.dataset=='cifar100':
                 eps_min = 6
                 eps_max = 12
@@ -145,6 +145,8 @@ def val(args, model, device, train_label_loader, train_unlabel_loader, epoch, n_
                     proto_mask_best = proto_mask
                     group_mask_new_best = group_mask_new
             print('** Best Group_num {} **'.format(n_cls_best))
+        else:
+            acc_best, _, proto_mask_best, _, group_mask_new_best = group_discovery(edge_graph, prototypes, args, targets_l, n_cls=n_cls)
 
         return edge_graph, proto_mask_best, group_mask_new_best, proto_ind, acc_best
 
