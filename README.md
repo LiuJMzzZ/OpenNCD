@@ -43,6 +43,7 @@ python main.py --dataset cifar10 --labeled_num 5 --labeled_ratio 0.1 --group_met
 ```
 
 ## Update
+**2023.8.25** Fix the bug when training with the known number of class
 **2023.8.10** Update main.py in the class number estimation part (--unknown_n_cls)
 - Implement an adaptive range for EPS searching to facilitate progressive grouping
 - Set the value of l_cls to 0 at the grouping stage to avoid over-fitting
