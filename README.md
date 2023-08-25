@@ -23,7 +23,7 @@ Please refer to requirements.txt.
 
 ### Pretrain Models
 
-We use the unsupervised SimCLR for pretraining. The pretrained resnet-18 models can be found [here](https://drive.google.com/drive/folders/1brOsw-09BKJLu0W6aTDsjYtYNDDFDnct?usp=share_link). Please unzip them to './pretrained'.
+We use the unsupervised SimCLR for pretraining. The pretrained resnet-18 models can be found [here](https://drive.google.com/drive/folders/1brOsw-09BKJLu0W6aTDsjYtYNDDFDnct?usp=share_link) (same as [orca](https://github.com/snap-stanford/orca)). Please unzip them to './pretrained'.
 
 
 
@@ -49,6 +49,9 @@ python main.py --dataset cifar10 --labeled_num 5 --labeled_ratio 0.1 --group_met
 - Implement an adaptive range for EPS searching to facilitate progressive grouping
 - Set the value of l_cls to 0 at the grouping stage to avoid over-fitting
 
+
+## Acknowledgements
+Thanks for the excellent repositories [orca](https://github.com/snap-stanford/orca) and [GCD](https://github.com/sgvaze/generalized-category-discovery).
 
 ## Citation
 
