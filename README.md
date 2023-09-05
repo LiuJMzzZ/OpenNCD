@@ -58,10 +58,16 @@ Thanks for the excellent repositories [orca](https://github.com/snap-stanford/or
 If you find our code useful, please consider citing:
 
 ```
-@inproceedings{
-    liu2023openncd,
-    title={Open-World Semi-supervised Novel Class Discovery},
-    author={Jiaming, Liu and Yangqiming, Wang and Tongze, Zhang and Yulu, Fan and Qinli, Yang and Junming, Shao},
-    booktitle={Proceedings of the Thirty-Second International Joint Conference on Artificial Intelligence, {IJCAI-23}},
-    year={2023},
+
+@inproceedings{ijcai2023p445,
+  title     = {Open-world Semi-supervised Novel Class Discovery},
+  author    = {Liu, Jiaming and Wang, Yangqiming and Zhang, Tongze and Fan, Yulu and Yang, Qinli and Shao, Junming},
+  booktitle = {Proceedings of the Thirty-Second International Joint Conference on
+               Artificial Intelligence, {IJCAI-23}},
+  publisher = {International Joint Conferences on Artificial Intelligence Organization},
+  pages     = {4002--4010},
+  year      = {2023},
+  month     = {8},
+  note      = {Main Track},
+  doi       = {10.24963/ijcai.2023/445},
 }
